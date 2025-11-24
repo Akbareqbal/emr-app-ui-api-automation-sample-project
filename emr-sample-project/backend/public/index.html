@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>EMR Sample</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    input, button, select { padding: 8px; margin: 4px 0; width: 100%; box-sizing: border-box; }
+    h1, h2 { margin: 0 0 12px 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#eef; font-size:12px; }
+  </style>
+</head>
+<body>
+  <h1>Electronic Medical Record (EMR) – Demo</h1>
+  <p class="pill">Demo only • No real PHI</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Create Patient</h2>
+      <label>First Name <input id="firstName" /></label>
+      <label>Last Name <input id="lastName" /></label>
+      <label>DOB <input id="dob" type="date" /></label>
+      <label>Insurance ID <input id="insuranceId" /></label>
+      <button onclick="createPatient()">Create</button>
+    </div>
+
+    <div class="card">
+      <h2>Patient Actions</h2>
+      <label>Patient ID <input id="patientId" type="number" placeholder="e.g., 1"/></label>
+      <h3>Add Note</h3>
+      <label>Author <input id="noteAuthor" placeholder="Physician"/></label>
+      <label>Content <input id="noteContent" placeholder="Patient complains of cough..."/></label>
+      <button onclick="addNote()">Add Note</button>
+      <h3 style="margin-top:12px;">Add Medication</h3>
+      <label>Name <input id="medName" placeholder="Amoxicillin"/></label>
+      <label>Dosage <input id="medDosage" placeholder="500mg"/></label>
+      <label>Frequency <input id="medFreq" placeholder="2x daily"/></label>
+      <label>Duration <input id="medDur" placeholder="7 days"/></label>
+      <button onclick="addMedication()">Add Medication</button>
+      <h3 style="margin-top:12px;">Add Lab</h3>
+      <label>Type <input id="labType" placeholder="CBC"/></label>
+      <label>Result <input id="labResult" placeholder="Normal"/></label>
+      <label>Taken At <input id="labTakenAt" type="datetime-local"/></label>
+      <button onclick="addLab()">Add Lab</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Patients</h2>
+    <button onclick="loadPatients()">Refresh</button>
+    <table id="patientTable">
+      <thead><tr><th>ID</th><th>Name</th><th>DOB</th><th>Insurance</th><th>Created</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function createPatient(){
+      const body = {
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        dob: document.getElementById('dob').value,
+        insuranceId: document.getElementById('insuranceId').value.trim()
+      };
+      const res = await fetch('/api/patients', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      const data = await res.json();
+      alert(res.ok ? `Patient created with id ${data.id}` : `Error: ${data.error}`);
+      loadPatients();
+    }
+
+    async function loadPatients(){
+      const res = await fetch('/api/patients');
+      const data = await res.json();
+      const tbody = document.querySelector('#patientTable tbody');
+      tbody.innerHTML = data.map(p => 
+        `<tr><td>${p.id}</td><td>${p.firstName} ${p.lastName}</td><td>${p.dob||''}</td><td>${p.insuranceId||''}</td><td>${p.createdAt}</td></tr>`
+      ).join('');
+    }
+
+    async function addNote(){
+      const id = document.getElementById('patientId').value;
+      const body = { author: document.getElementById('noteAuthor').value, content: document.getElementById('noteContent').value };
+      const res = await fetch(`/api/patients/${id}/notes`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      const data = await res.json();
+      alert(res.ok ? `Note added (id ${data.id})` : `Error: ${data.error}`);
+    }
+
+    async function addMedication(){
+      const id = document.getElementById('patientId').value;
+      const body = {
+        name: document.getElementById('medName').value,
+        dosage: document.getElementById('medDosage').value,
+        frequency: document.getElementById('medFreq').value,
+        duration: document.getElementById('medDur').value
+      };
+      const res = await fetch(`/api/patients/${id}/medications`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      const data = await res.json();
+      alert(res.ok ? `Medication added (id ${data.id})` : `Error: ${data.error}`);
+    }
+
+    async function addLab(){
+      const id = document.getElementById('patientId').value;
+      const body = {
+        type: document.getElementById('labType').value,
+        result: document.getElementById('labResult').value,
+        takenAt: document.getElementById('labTakenAt').value
+      };
+      const res = await fetch(`/api/patients/${id}/labs`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      const data = await res.json();
+      alert(res.ok ? `Lab added (id ${data.id})` : `Error: ${data.error}`);
+    }
+
+    loadPatients();
+  </script>
+</body>
+</html>
